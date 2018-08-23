@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ### This script is to automatically convert a folder of video files to H.265
-### You need to change SRC -- Source folder and DEST -- Destination folder
+### You should to change the variables below (line 6-10) to your preference/setup.
 
 SRC=/mnt/Plex/Movies					## The directory the loop will go through
 DEST=/mnt/Familie/Plex/HEVC				## The directory the script will put the files in once it's done with them
