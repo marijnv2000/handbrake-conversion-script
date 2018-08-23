@@ -3,44 +3,44 @@
 ### This script is to automatically convert a folder of video files to H.265
 ### You need to change SRC -- Source folder and DEST -- Destination folder
 
-SRC=/mnt/Plex/Movies
-DEST=/mnt/Familie/Plex/HEVC
-DEST_EXT=mkv
-HANDBRAKE_CLI=HandBrakeCLI
-EXTENSION=hevc
+SRC=/mnt/Plex/Movies					## The directory the loop will go through
+DEST=/mnt/Familie/Plex/HEVC				## The directory the script will put the files in once it's done with them
+DEST_EXT=mkv						## The extension the file gets after conversiont
+HANDBRAKE_CLI=HandBrakeCLI				## Name of the handbrake-cli executable (case sensitive)
+EXTENSION=hevc						## Optional string to add to end of filename (in case you don't want one make sure to remove it from line 21 (the .$EXTENSION part))
 
-for FILE in $SRC/*.{mp4,mkv} $SRC/**/*.{mp4,mkv}
-do
-	NAME=$(basename "$FILE")
-	NAME=${NAME%.*}
-	FOLDER="${NAME%%)*})"
-	MIN_SIZE=10000000000
-	ACT_SIZE=$(wc -c <"$FILE")
+for FILE in $SRC/*.{mp4,mkv} $SRC/**/*.{mp4,mkv}	## Start of the loop, searches through the specified directory and matches any files with mp4 and mkv extension. You can see it looks in the first directory and 1 sub-directory ($SRC/**/*)
+do							## Executes the following for every file found
+	NAME=$(basename "$FILE")			## When the loop finds a file, it defines $FILE with the entire path (example: /mnt/Plex/Movies/Movie AB/Movie AB (1999).mkv) instead of just 'Movie AB (1999).mkv'. This line cuts off the path so the output will be Movie AB.mkv. Quotes are required if there are spaces anywhere in the path or file name.
+	NAME=${NAME%.*}					## Takes the filename obtained from the previous line and cuts off the extension, in order to create a folder with the same name as the movie in the output directory.
+	FOLDER="${NAME%%)*})"				## This line removes any characters after ")" (assumes naming scheme according to Plex conventions; Movie AB (1999).mkv). The last closing ')' is then added again. In short: Sets $FOLDER variable by taking file name from previous line 'Movie AB (1999) 1080p Remux' and transforming it to 'Movie AB (1999)'
+	MIN_SIZE=10000000000				## Sets minimum size of file to be considered for converting to 10GB (notation in bytes)
+	ACT_SIZE=$(wc -c <"$FILE")			## Computes the actual size of the file (once again in bytes) in order to compare it to the $MIN_SIZE variable
 
 
-if [ -f "$DEST/$FOLDER/$NAME.$EXTENSION.$DEST_EXT" ]
-then
-	for i in {1..5}
+if [ -f "$DEST/$FOLDER/$NAME.$EXTENSION.$DEST_EXT" ]	## Checks if the file already exists in the DEST directory (that you set on line 7)
+then							## If it does, then continue with the indented code
+	for i in {1..5}					## Simple loop to perform the same task 5 times
+	do						## Executes the following indented code
+		echo					## Outputs whatever comes after 'echo' to the terminal. In this case nothing because the function is to create whitespace to make output more easily readable
+	done						## Signals this 'for' loop is done
+	echo "$FILE already exists, if it's a partial file, delete it and start over."		## Updates the user on what's going on
+	sleep 5											## Pause for 5 seconds to give the user some time to read output and decide what to do
+else							## If the current file (from line 21) doesn't exist yet it will execute the following indented code
+	for i in {1..5}					## Once again creates whitespace (read comments from line 23-26)
 	do
 		echo
 	done
-	echo "$FILE already exists, if it's a partial file, delete it and start over."
-	sleep 5
-else
-	for i in {1..5}
-	do
-		echo
-	done
 
-	if [ "$ACT_SIZE" -ge "$MIN_SIZE" ]
-	then
-		echo "$DEST/$FOLDER/$NAME.$EXTENSION.$DEST_EXT does not exist yet and the original file is over 10GB, encoding now..."
-		sleep 3
-		mkdir -p "$DEST/$FOLDER"
-		$HANDBRAKE_CLI -i "$FILE" -o "$DEST/$FOLDER/$NAME.$EXTENSION.$DEST_EXT" -e x265 -q 20 --all-audio -E copy:aac --audio-fallback av_aac -B 320 --custom-anamorphic --keep-display-aspect -O --all-subtitles
-	else
-		echo "$FILE is under 10GB, not worth the effort. Skipping.."
-		sleep 3
-	fi
-fi
-done
+	if [ "$ACT_SIZE" -ge "$MIN_SIZE" ]		## Performs size comparison of the $ACT_SIZE (computed current file size) set on line 18 to the $MIN_SIZE (minimum file size) set on line 17
+	then						## If the size of the current file is bigger than the minimum, execute following indented code
+		echo "$DEST/$FOLDER/$NAME.$EXTENSION.$DEST_EXT does not exist yet and the original file is over 10GB, encoding now..."												## Informs the user the destination file doesn't exist yet and is over 10GB, and thus will start the re-encoding process (conversion)
+		sleep 3																										## Pauses for 3 seconds to give the user some time to read
+		mkdir -p "$DEST/$FOLDER"																							## Creates a subfolder for the movie that's about to be converted. The -p switch makes it so it creates any folder in the path that doesn't exist yet and so it won't try to create a folder that already exists, so there won't be an error message if it does. Uses the $DEST variable defined on line 7 and the $FOLDER variable on line 16 as the full path of the new folder
+		$HANDBRAKE_CLI -i "$FILE" -o "$DEST/$FOLDER/$NAME.$EXTENSION.$DEST_EXT" -e x265 -q 20 --all-audio -E copy:aac --audio-fallback av_aac -B 320 --custom-anamorphic --keep-display-aspect -O --all-subtitles	## Uses all the previously defined variables as input for the HandBrakeCLI executable. If you want to know what these mean, type HandBrakeCLI --help in your terminal or look up the manual online
+	else											## If size of movie is smaller than $MIN_SIZE then execute the following indented code
+		echo "$FILE is under 10GB, not worth the effort. Skipping.."			## Updates the user on what's going on
+		sleep 3										## Grants some reading time by pausing for 3 seconds
+	fi											## Signals end of nested if/else statement
+fi												## Signals end of previous if/else statement
+done												## Tells bash that current loop is done and to start over (in order to process the next file in the directory)
