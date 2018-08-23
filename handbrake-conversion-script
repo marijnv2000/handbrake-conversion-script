@@ -1,0 +1,46 @@
+#!/bin/bash
+
+### This script is to automatically convert a folder of video files to H.265
+### You need to change SRC -- Source folder and DEST -- Destination folder
+
+SRC=/mnt/Plex/Movies
+DEST=/mnt/Familie/Plex/HEVC
+DEST_EXT=mkv
+HANDBRAKE_CLI=HandBrakeCLI
+EXTENSION=hevc
+
+for FILE in $SRC/*.{mp4,mkv} $SRC/**/*.{mp4,mkv}
+do
+	NAME=$(basename "$FILE")
+	NAME=${NAME%.*}
+	FOLDER="${NAME%%)*})"
+	MIN_SIZE=10000000000
+	ACT_SIZE=$(wc -c <"$FILE")
+
+
+if [ -f "$DEST/$FOLDER/$NAME.$EXTENSION.$DEST_EXT" ]
+then
+	for i in {1..5}
+	do
+		echo
+	done
+	echo "$FILE already exists, if it's a partial file, delete it and start over."
+	sleep 5
+else
+	for i in {1..5}
+	do
+		echo
+	done
+
+	if [ "$ACT_SIZE" -ge "$MIN_SIZE" ]
+	then
+		echo "$DEST/$FOLDER/$NAME.$EXTENSION.$DEST_EXT does not exist yet and the original file is over 10GB, encoding now..."
+		sleep 3
+		mkdir -p "$DEST/$FOLDER"
+		$HANDBRAKE_CLI -i "$FILE" -o "$DEST/$FOLDER/$NAME.$EXTENSION.$DEST_EXT" -e x265 -q 20 --all-audio -E copy:aac --audio-fallback av_aac -B 320 --custom-anamorphic --keep-display-aspect -O --all-subtitles
+	else
+		echo "$FILE is under 10GB, not worth the effort. Skipping.."
+		sleep 3
+	fi
+fi
+done
